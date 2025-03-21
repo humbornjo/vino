@@ -16,22 +16,3 @@ func SliceHas[T comparable](s []T, x T) bool {
 	}
 	return false
 }
-
-type sliceStream[T any] struct {
-	s []T
-	i int
-}
-
-func (s sliceStream[T]) Next() (T, bool) {
-	idx := s.i
-	if idx < len(s.s) {
-		v := s.s[idx]
-		s.i = idx + 1
-		return v, true
-	}
-	return *new(T), false
-}
-
-func SliceAsStream[T any](s []T) Stream[T] {
-	return sliceStream[T]{s, 0}
-}
