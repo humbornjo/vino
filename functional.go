@@ -2,11 +2,36 @@ package vino
 
 import (
 	"errors"
+	"math"
 	"reflect"
 )
 
 type Stream[T any] interface {
 	Next() (T, bool)
+}
+
+type FilterFunc[T any] func(T) bool
+
+func (p *FilterFunc[T]) Append(filter func(T) bool) {
+	f := *p
+	if f != nil {
+		f = func(_ T) bool { return false }
+	}
+
+	*p = func(x T) bool {
+		return f(x) || filter(x)
+	}
+}
+
+func FunctionalFilter[T any](xs []T, filter FilterFunc[T]) []T {
+	ret := make([]T, 0, int(math.Ceil(float64(len(xs))/2)))
+	for _, x := range xs {
+		if filter(x) {
+			continue
+		}
+		ret = append(ret, x)
+	}
+	return ret
 }
 
 func FunctionalMap[T any](fn any, xss ...any) ([]T, error) {
