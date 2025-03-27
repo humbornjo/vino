@@ -1,18 +1,96 @@
 package vino
 
 import (
+	"errors"
 	"sync"
 	"weak"
 
 	"github.com/google/uuid"
 )
 
-// TODO:
 // A resizable channel
-type ChanMut[T any] struct {
-	in   chan T
-	out  chan T
-	size int
+type chanMut[T any] struct {
+	mu      sync.RWMutex
+	size    int
+	input   chan T
+	output  chan T
+	resizer chan option
+}
+
+func NewChanMut[T any](size int) *chanMut[T] {
+	ch := &chanMut[T]{
+		size:    size,
+		input:   make(chan T, size),
+		output:  make(chan T),
+		resizer: make(chan option, 8),
+	}
+	go ch.start(size)
+	return ch
+}
+
+func (c *chanMut[T]) start(size int) {
+	resizing := false
+	for {
+		select {
+		case x, ok := <-c.input:
+			if !ok {
+				close(c.output)
+				close(c.resizer)
+				return
+			}
+			c.output <- x
+		case osize := <-c.resizer:
+			newSize := new(int)
+			switch o, Some := Match[int](osize); o {
+			case None:
+			case Some(newSize):
+				size = *newSize
+			}
+			if resizing || c.size == size {
+				continue
+			}
+			resizing = true
+			c.size = size
+			newInput := make(chan T, size)
+			c.mu.Lock()
+			c.input, newInput = newInput, c.input
+			c.mu.Unlock()
+			go func() {
+				for x := range newInput {
+					c.input <- x
+				}
+				resizing = false
+				c.resizer <- Option[int](nil)
+			}()
+		}
+	}
+}
+
+func (c *chanMut[T]) Close() {
+	close(c.input)
+}
+
+func (c *chanMut[T]) In() chan<- T {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.input
+}
+
+func (c *chanMut[T]) Out() <-chan T {
+	return c.output
+}
+
+func (c *chanMut[T]) Len() int {
+	return c.size
+}
+
+func (c *chanMut[T]) Resize(size int) error {
+	select {
+	case c.resizer <- Option(&size):
+		return nil
+	default:
+		return errors.New("resize failed")
+	}
 }
 
 // TODO:

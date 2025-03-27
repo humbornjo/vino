@@ -14,7 +14,7 @@ func Test_Option(t *testing.T) {
 
 	// ----- routine -----
 	val := new(int)
-	switch x, Some := option.Match(); x {
+	switch x, Some := Match[int](option); x {
 	case None:
 		panic("unreachable")
 	case Some(val):
