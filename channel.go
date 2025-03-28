@@ -11,13 +11,13 @@ import (
 // A resizable channel
 type chanMut[T any] struct {
 	mu      sync.RWMutex
-	size    int
+	size    uint
 	input   chan T
 	output  chan T
 	resizer chan option
 }
 
-func NewChanMut[T any](size int) *chanMut[T] {
+func NewChanMut[T any](size uint) *chanMut[T] {
 	ch := &chanMut[T]{
 		size:    size,
 		input:   make(chan T, size),
@@ -28,7 +28,7 @@ func NewChanMut[T any](size int) *chanMut[T] {
 	return ch
 }
 
-func (c *chanMut[T]) start(size int) {
+func (c *chanMut[T]) start(size uint) {
 	resizing := false
 	for {
 		select {
@@ -40,8 +40,8 @@ func (c *chanMut[T]) start(size int) {
 			}
 			c.output <- x
 		case osize := <-c.resizer:
-			newSize := new(int)
-			switch o, Some := Match[int](osize); o {
+			newSize := new(uint)
+			switch o, Some := Match[uint](osize); o {
 			case None:
 			case Some(newSize):
 				size = *newSize
@@ -81,10 +81,10 @@ func (c *chanMut[T]) Out() <-chan T {
 }
 
 func (c *chanMut[T]) Len() int {
-	return c.size
+	return int(c.size)
 }
 
-func (c *chanMut[T]) Resize(size int) error {
+func (c *chanMut[T]) Resize(size uint) error {
 	select {
 	case c.resizer <- Option(&size):
 		return nil
