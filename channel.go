@@ -12,32 +12,40 @@ import (
 type chanMut[T any] struct {
 	size    uint
 	input   chan T
+	tunnel  chan T
 	output  chan T
 	resizer chan option
 }
 
 func NewChanMut[T any](size uint) *chanMut[T] {
-	ch := &chanMut[T]{
+	chanMut := &chanMut[T]{
 		size:    size,
-		input:   make(chan T, size),
+		input:   make(chan T),
+		tunnel:  make(chan T, size),
 		output:  make(chan T),
 		resizer: make(chan option, 8),
 	}
-	go ch.start(size)
-	return ch
+	go chanMut.prologue(size)
+	go chanMut.epilogue()
+	return chanMut
 }
 
-func (c *chanMut[T]) start(size uint) {
+func (c *chanMut[T]) prologue(size uint) {
+	defer func() {
+		for range c.resizer {
+		}
+		close(c.resizer)
+	}()
+
 	resizing := false
 	for {
 		select {
 		case x, ok := <-c.input:
 			if !ok {
-				close(c.output)
-				close(c.resizer)
+				close(c.tunnel)
 				return
 			}
-			c.output <- x
+			c.tunnel <- x
 		case osize := <-c.resizer:
 			newSize := new(uint)
 			switch o, Some := Match[uint](osize); o {
@@ -50,15 +58,32 @@ func (c *chanMut[T]) start(size uint) {
 			}
 			resizing = true
 			c.size = size
-			newInput := make(chan T, size)
-			c.input, newInput = newInput, c.input
+			newTunnel := make(chan T, size)
+			c.tunnel, newTunnel = newTunnel, c.tunnel
+			close(newTunnel)
 			go func() {
-				for x := range newInput {
-					c.input <- x
+				for x := range newTunnel {
+					c.output <- x
 				}
 				resizing = false
 				c.resizer <- None
 			}()
+		}
+	}
+}
+
+func (c *chanMut[T]) epilogue() {
+	defer close(c.output)
+	update := false
+	for {
+		for x := range c.tunnel {
+			update = false
+			c.output <- x
+		}
+		if update {
+			return
+		} else {
+			update = true
 		}
 	}
 }
@@ -76,16 +101,31 @@ func (c *chanMut[T]) Out() <-chan T {
 }
 
 func (c *chanMut[T]) Len() int {
-	return int(c.size)
+	return int(len(c.tunnel))
 }
 
-func (c *chanMut[T]) Resize(size uint) error {
+func (c *chanMut[T]) Cap() int {
+	return int(cap(c.tunnel))
+}
+
+func (c *chanMut[T]) Resize(size uint) (err error) {
+	defer func() {
+		recover()
+	}()
+	err = errors.New("channel is closed")
 	select {
-	case c.resizer <- Option(&size):
-		return nil
+	case _, ok := <-c.resizer:
+		if !ok {
+			return
+		}
 	default:
-		return errors.New("resize failed")
+		select {
+		case c.resizer <- Option(&size):
+		default:
+			return errors.New("resize failed")
+		}
 	}
+	return nil
 }
 
 // TODO:

@@ -1,13 +1,14 @@
-package vino
+package vino_test
 
 import (
 	"testing"
 	"time"
 
+	. "github.com/humbornjo/vino"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Option(t *testing.T) {
+func TestOption(t *testing.T) {
 	ch := make(chan int)
 	value := 114514
 	option := Option(&value)

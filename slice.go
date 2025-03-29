@@ -1,8 +1,14 @@
 package vino
 
-func SliceIter[T any](s []T, f func(T) bool) {
-	for _, v := range s {
-		if !f(v) {
+func SliceIter[T any](s []T, f func(int, T)) {
+	for i, v := range s {
+		f(i, v)
+	}
+}
+
+func SliceWalk[T any](s []T, f func(int, T) bool) {
+	for i, v := range s {
+		if !f(i, v) {
 			return
 		}
 	}

@@ -3,8 +3,8 @@ module github.com/humbornjo/vino
 go 1.24.1
 
 require (
-	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
+	modernc.org/b/v2 v2.1.2
 )
 
 require (

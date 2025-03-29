@@ -4,38 +4,38 @@ import (
 	"sync"
 )
 
-type RWMutex struct {
+type MutexRW struct {
 	lifted bool
-	john   sync.RWMutex
-	jane   sync.RWMutex
+	muGate sync.RWMutex
+	muYard sync.RWMutex
 }
 
-func (m *RWMutex) Lock() {
-	m.john.Lock()
-	m.jane.Lock()
+func (m *MutexRW) Lock() {
+	m.muGate.Lock()
+	m.muYard.Lock()
 }
 
-func (m *RWMutex) Unlock() {
+func (m *MutexRW) Unlock() {
 	if m.lifted {
 		m.lifted = false
-		defer m.john.RUnlock()
+		defer m.muGate.RUnlock()
 	} else {
-		defer m.john.Unlock()
+		defer m.muGate.Unlock()
 	}
-	m.jane.Unlock()
+	m.muYard.Unlock()
 }
 
-func (m *RWMutex) RLock() {
-	m.john.RLock()
-	m.jane.RLock()
+func (m *MutexRW) RLock() {
+	m.muGate.RLock()
+	m.muYard.RLock()
 }
 
-func (m *RWMutex) RUnlock() {
-	m.jane.RUnlock()
-	m.john.RUnlock()
+func (m *MutexRW) RUnlock() {
+	m.muGate.RUnlock()
+	m.muYard.RUnlock()
 }
 
-func (m *RWMutex) RLifted() {
-	m.jane.RUnlock()
-	m.jane.Lock()
+func (m *MutexRW) RLifted() {
+	m.muGate.RUnlock()
+	m.muYard.Lock()
 }

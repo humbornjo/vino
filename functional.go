@@ -2,12 +2,11 @@ package vino
 
 import (
 	"errors"
-	"math"
 	"reflect"
 )
 
 type Stream[T any] interface {
-	Next() (T, bool)
+	Next() (T, error)
 }
 
 type FilterFunc[T any] func(T) bool
@@ -24,7 +23,7 @@ func (p *FilterFunc[T]) Append(filter func(T) bool) {
 }
 
 func FunctionalFilter[T any](xs []T, filter FilterFunc[T]) []T {
-	ret := make([]T, 0, int(math.Ceil(float64(len(xs))/2)))
+	ret := make([]T, 0, len(xs))
 	for _, x := range xs {
 		if filter(x) {
 			continue
