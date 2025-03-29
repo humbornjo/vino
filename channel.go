@@ -57,7 +57,7 @@ func (c *chanMut[T]) start(size uint) {
 					c.input <- x
 				}
 				resizing = false
-				c.resizer <- Option[int](nil)
+				c.resizer <- None
 			}()
 		}
 	}
