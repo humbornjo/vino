@@ -10,7 +10,6 @@ import (
 
 // A resizable channel
 type chanMut[T any] struct {
-	mu      sync.RWMutex
 	size    uint
 	input   chan T
 	output  chan T
@@ -52,9 +51,7 @@ func (c *chanMut[T]) start(size uint) {
 			resizing = true
 			c.size = size
 			newInput := make(chan T, size)
-			c.mu.Lock()
 			c.input, newInput = newInput, c.input
-			c.mu.Unlock()
 			go func() {
 				for x := range newInput {
 					c.input <- x
@@ -71,8 +68,6 @@ func (c *chanMut[T]) Close() {
 }
 
 func (c *chanMut[T]) In() chan<- T {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
 	return c.input
 }
 
