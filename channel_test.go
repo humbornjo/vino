@@ -13,8 +13,8 @@ func TestChanMut(t *testing.T) {
 	defer ch.Close()
 
 	// Test initial size
-	if ch.Len() != int(size) {
-		t.Errorf("expected initial size %d, got %d", size, ch.Len())
+	if ch.Cap() != int(size) {
+		t.Errorf("expected initial size %d, got %d", size, ch.Cap())
 	}
 
 	// Test sending and receiving
@@ -43,10 +43,10 @@ func TestChanMut(t *testing.T) {
 	}
 
 	due := time.After(time.Second)
-	for ch.Len() != int(newSize) {
+	for ch.Cap() != int(newSize) {
 		select {
 		case <-due:
-			t.Errorf("expected resized length %d, got %d", newSize, ch.Len())
+			t.Errorf("expected resized length %d, got %d", newSize, ch.Cap())
 		default:
 		}
 	}
