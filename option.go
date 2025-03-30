@@ -22,7 +22,7 @@ func Option[T any](x *T) option {
 }
 
 func Match[T any](o option) (option, some_f[T]) {
-	if *(*some_f[T])(o) == nil {
+	if o == None {
 		return None, nil
 	}
 	return some, func(t *T) option {

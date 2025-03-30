@@ -2,10 +2,7 @@ module github.com/humbornjo/vino
 
 go 1.24.1
 
-require (
-	github.com/stretchr/testify v1.10.0
-	modernc.org/b/v2 v2.1.2
-)
+require github.com/stretchr/testify v1.10.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

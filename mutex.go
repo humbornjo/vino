@@ -4,6 +4,7 @@ import (
 	"sync"
 )
 
+// MutexRW is a RWMutex that can be upgrade (a.k.a lifted)
 type MutexRW struct {
 	lifted bool
 	muGate sync.RWMutex
