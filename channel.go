@@ -15,6 +15,8 @@ import (
 // processing (tunnel), and output, along with a resizer channel for
 // handling resize requests.
 type chanMut[T any] struct {
+	mu      sync.Mutex
+	closed  bool
 	size    uint
 	input   chan T
 	tunnel  chan T
@@ -75,7 +77,11 @@ func (c *chanMut[T]) prologue() {
 					c.output <- x
 				}
 				resizing = false
-				c.resizer <- None
+				c.mu.Lock()
+				defer c.mu.Unlock()
+				if !c.closed {
+					c.resizer <- None
+				}
 			}()
 		}
 	}
@@ -101,7 +107,10 @@ func (c *chanMut[T]) epilogue() {
 // This will eventually close the underlying channels after processing
 // pending messages.
 func (c *chanMut[T]) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	close(c.input)
+	c.closed = true
 }
 
 // In returns the send-only channel used to send messages into the
@@ -128,13 +137,16 @@ func (c *chanMut[T]) Cap() int {
 
 // Resize attempts to change the buffer size of the underlying channel.
 // It returns an error if the channel is closed or if resizing fails.
-func (c *chanMut[T]) Resize(size uint) (err error) {
-	defer func() { recover() }()
-	err = errors.New("channel is closed")
+func (c *chanMut[T]) Resize(size uint) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return errors.New("channel is closed")
+	}
 	select {
 	case _, ok := <-c.resizer:
 		if !ok {
-			return
+			return errors.New("channel is closed")
 		}
 	default:
 		select {
@@ -166,8 +178,10 @@ type chanBroadcast[T any] struct {
 // NewChanBroadcast creates and initializes a new broadcast channel with
 // the specified buffer size. The broadcast channel distributes incoming
 // messages to all registered receivers. User is responsible for setting
-// the channel from Out() to nil when it is no longer needed so that GC
-// can recycle the memory of channel and pending messages.
+// the channel accquired from Out() to nil when it is no longer needed so
+// that GC can recycle the memory of channel and pending messages. If not,
+// the pending messages will pile up, causing memory leak and flood inner
+// tunnel channel with None option signals.
 func NewChanBroadcast[T any](size uint) *chanBroadcast[T] {
 	chanBroadcast := &chanBroadcast[T]{
 		closed:    false,
@@ -192,7 +206,6 @@ func (c *chanBroadcast[T]) epilogue() {
 	defer func() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
-		c.closed = true
 
 		for ch := range c.registers {
 			if ptrCh := ch.Value(); ptrCh != nil {
@@ -245,7 +258,10 @@ func (c *chanBroadcast[T]) epilogue() {
 // Once closed, all registered receiver channels will be closed. Pending
 // messages will be dropped.
 func (c *chanBroadcast[T]) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	close(c.input)
+	c.closed = true
 }
 
 // In returns the send-only channel used for broadcasting messages.
