@@ -37,6 +37,27 @@ func (m *MutexRW) RUnlock() {
 }
 
 func (m *MutexRW) RLifted() {
-	m.muGate.RUnlock()
+	m.muYard.RUnlock()
 	m.muYard.Lock()
+	m.lifted = true
+}
+
+func (m *MutexRW) TryLock() bool {
+	if m.muGate.TryLock() {
+		if m.muYard.TryLock() {
+			return true
+		}
+		m.muGate.Unlock()
+	}
+	return false
+}
+
+func (m *MutexRW) TryRLock() bool {
+	if m.muGate.TryRLock() {
+		if m.muYard.TryRLock() {
+			return true
+		}
+		m.muGate.RUnlock()
+	}
+	return false
 }
