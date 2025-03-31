@@ -12,6 +12,32 @@ type Stream[T any] interface {
 	Next() (T, error)
 }
 
+type repeatedStream[T any] struct {
+	xs     []T
+	idx    int
+	repeat int
+}
+
+func (s repeatedStream[T]) Next() (T, error) {
+	if s.idx >= len(s.xs) {
+		if s.repeat == 0 {
+			return *new(T), errors.New("stream exhausted")
+		}
+		if s.repeat > 0 {
+			s.repeat--
+		}
+		s.idx = 0
+	}
+	s.idx++
+	return s.xs[s.idx], nil
+}
+
+func NewRepeatedStream[T any](s []T, repeat int) Stream[T] {
+	xs := make([]T, 0, len(s))
+	copy(xs, s)
+	return repeatedStream[T]{xs: xs, repeat: repeat, idx: 0}
+}
+
 // FilterFunc is a function type that takes a value of type T and returns
 // a boolean indicating whether the value should be filtered out.
 type FilterFunc[T any] func(T) bool

@@ -36,10 +36,17 @@ func (m *MutexRW) RUnlock() {
 	m.muYard.RUnlock()
 }
 
-func (m *MutexRW) RLifted() {
+// "Rpgrade" pronounces just like "Upgrade", so coooool
+func (m *MutexRW) Rpgrade() {
 	m.muYard.RUnlock()
 	m.muYard.Lock()
 	m.lifted = true
+}
+
+func (m *MutexRW) Degrade() {
+	m.muYard.Unlock()
+	m.muYard.RLock()
+	m.lifted = false
 }
 
 func (m *MutexRW) TryLock() bool {
