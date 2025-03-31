@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// MutexRW is a RWMutex that can be upgrade (a.k.a lifted)
+// MutexRW is a RWMutex that can be upgrade/degrade
 type MutexRW struct {
 	lifted bool
 	muGate sync.RWMutex
