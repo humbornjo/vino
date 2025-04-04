@@ -49,7 +49,7 @@ type option unsafe.Pointer
 //	opt := Option(&x)
 func Option[T any](x *T) option {
 	if x == nil {
-		return option(nil)
+		return None
 	}
 	f := func(t *T) { *t = *x }
 	return option(unsafe.Pointer(&f))
