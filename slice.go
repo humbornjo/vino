@@ -21,17 +21,6 @@ func SliceWalk[T any](s []T, f func(int, T) bool) {
 	}
 }
 
-// SliceHas checks whether the slice s contains the element x.
-// It returns true if x is found in the slice, and false otherwise.
-func SliceHas[T comparable](s []T, x T) bool {
-	for i := range s {
-		if s[i] == x {
-			return true
-		}
-	}
-	return false
-}
-
 // SliceUnique returns a new slice that contains only the unique elements
 // from the input slice s. The order of elements in the resulting slice
 // is not guaranteed.
